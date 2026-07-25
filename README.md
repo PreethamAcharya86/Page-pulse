@@ -4,8 +4,6 @@ A tiny tool that audits any URL. Paste a link, get back HTTP status, response
 time, title, meta description, H1 count, images missing `alt` text, and an
 approximate word count.
 
-Built for the Digital Heroes SDE internship task kit (Role 03, Tasks A & B).
-
 ## Stack
 
 - **Backend:** Node.js + Express, native `fetch` (Node 18+), `cheerio` for HTML parsing
