@@ -1,0 +1,20 @@
+{
+  "name": "page-pulse",
+  "version": "1.0.0",
+  "description": "Page Pulse - a tiny URL auditor. Paste a URL, get an instant report: status, speed, title, meta description, heading structure, image alt-text coverage, and word count.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

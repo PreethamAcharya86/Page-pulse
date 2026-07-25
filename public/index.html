@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Page Pulse — instant page audits</title>
+<style>
+  :root {
+    --ink: #14161a;
+    --paper: #faf9f6;
+    --line: #e4e1d8;
+    --accent: #ff5a1f;
+    --good: #1a7a4c;
+    --bad: #c23b22;
+    --muted: #6b6b64;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    line-height: 1.5;
+  }
+  header {
+    padding: 48px 24px 24px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 2rem;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  header p { color: var(--muted); margin: 0; }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+  form {
+    display: flex;
+    gap: 8px;
+    margin: 24px 0 32px;
+  }
+  input[type="url"] {
+    flex: 1;
+    padding: 14px 16px;
+    font-size: 1rem;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    background: white;
+  }
+  input[type="url"]:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+  button {
+    padding: 14px 22px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: var(--ink);
+    color: white;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button:hover:not(:disabled) { background: var(--accent); }
+
+  .state { padding: 32px 0; color: var(--muted); }
+  .state.error { color: var(--bad); }
+
+  .report {
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    background: white;
+    overflow: hidden;
+  }
+  .report-head {
+    padding: 18px 20px;
+    border-bottom: 1.5px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .report-head .url { font-weight: 600; word-break: break-all; }
+  .badge {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .badge.ok { background: #e4f5ea; color: var(--good); }
+  .badge.bad { background: #fbe6e1; color: var(--bad); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--line);
+  }
+  .cell {
+    background: white;
+    padding: 18px 20px;
+  }
+  .cell .label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .cell .value { font-size: 1.3rem; font-weight: 700; }
+  .cell .value.warn { color: var(--bad); }
+
+  .text-block {
+    padding: 18px 20px;
+    border-top: 1.5px solid var(--line);
+  }
+  .text-block .label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .text-block .value { font-size: 1rem; }
+  .text-block .value.missing { color: var(--muted); font-style: italic; }
+
+  footer {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Page Pulse</h1>
+    <p>Paste any URL. Get its status, speed, and on-page health in one shot.</p>
+  </header>
+
+  <main>
+    <form id="audit-form">
+      <input
+        id="url-input"
+        type="url"
+        name="url"
+        placeholder="https://example.com"
+        required
+        autocomplete="off"
+      />
+      <button id="submit-btn" type="submit">Audit</button>
+    </form>
+
+    <div id="results"></div>
+  </main>
+
+  <footer>
+    Built for Digital Heroes Training Task —
+    <a href="https://digitalheroesco.com" target="_blank" rel="noopener">digitalheroesco.com</a>
+  </footer>
+
+  <script>
+    const form = document.getElementById('audit-form');
+    const input = document.getElementById('url-input');
+    const btn = document.getElementById('submit-btn');
+    const results = document.getElementById('results');
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderLoading() {
+      results.innerHTML = `<div class="state">Auditing page…</div>`;
+    }
+
+    function renderEmpty() {
+      results.innerHTML = `<div class="state">Enter a URL above to see its report.</div>`;
+    }
+
+    function renderError(message) {
+      results.innerHTML = `<div class="state error">⚠ ${escapeHtml(message)}</div>`;
+    }
+
+    function renderReport(r) {
+      const statusOk = r.ok;
+      results.innerHTML = `
+        <div class="report">
+          <div class="report-head">
+            <span class="url">${escapeHtml(r.url)}</span>
+            <span class="badge ${statusOk ? 'ok' : 'bad'}">${r.httpStatus}</span>
+          </div>
+          <div class="grid">
+            <div class="cell">
+              <div class="label">Response time</div>
+              <div class="value">${r.responseTimeMs} ms</div>
+            </div>
+            <div class="cell">
+              <div class="label">H1 tags</div>
+              <div class="value ${r.h1Count === 1 ? '' : 'warn'}">${r.h1Count}</div>
+            </div>
+            <div class="cell">
+              <div class="label">Images missing alt</div>
+              <div class="value ${r.imagesMissingAlt > 0 ? 'warn' : ''}">${r.imagesMissingAlt} / ${r.imagesTotal}</div>
+            </div>
+            <div class="cell">
+              <div class="label">Word count</div>
+              <div class="value">${r.wordCount.toLocaleString()}</div>
+            </div>
+          </div>
+          <div class="text-block">
+            <div class="label">Title</div>
+            <div class="value ${r.title ? '' : 'missing'}">${r.title ? escapeHtml(r.title) : 'No <title> found'}</div>
+          </div>
+          <div class="text-block">
+            <div class="label">Meta description</div>
+            <div class="value ${r.metaDescription ? '' : 'missing'}">${r.metaDescription ? escapeHtml(r.metaDescription) : 'No meta description found'}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    renderEmpty();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = input.value.trim();
+      if (!url) return;
+
+      btn.disabled = true;
+      renderLoading();
+
+      try {
+        const res = await fetch('/api/audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          renderError(data.error || 'Something went wrong.');
+        } else {
+          renderReport(data);
+        }
+      } catch (err) {
+        renderError('Network error — could not reach Page Pulse\'s server.');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
